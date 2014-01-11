@@ -66,14 +66,6 @@
     }
 }
 
-- (void)deleteEntity:(id)entity {
-    NSManagedObjectContext *contextForThread = [[[NSThread currentThread] threadDictionary] objectForKey:@"ManagedObjectContextKey"];
-    if (contextForThread != nil) {
-        [contextForThread deleteObject:entity];
-        [self saveContext];
-    }
-}
-
 - (NSString *)applicationDocumentsDirectory {
 	return [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
 }
@@ -160,30 +152,6 @@
     return persistentStoreCoordinator;
 }
 
-- (NSArray *) getDistinctValuesForEntityProperty:(NSString*) entityName forProperty:(NSString*) property withSorting:(NSString *) sortColumn withPredicate:(NSPredicate*) predicate{
-    NSFetchRequest * req = [[NSFetchRequest alloc] init];
-    NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext];
-    NSDictionary *entityProperties = [entity propertiesByName];
-    [req setEntity:entity];
-    [req setReturnsDistinctResults:YES];
-    [req setPropertiesToFetch:[NSArray arrayWithObject:[entityProperties objectForKey:property]]];
-    [req setSortDescriptors:[NSArray arrayWithObject:[[NSSortDescriptor alloc] initWithKey:sortColumn ascending:YES]]];
-    [req setResultType:NSDictionaryResultType];
-    
-    if (predicate != nil) {
-        [req setPredicate:predicate];
-    }
-    NSArray *result = [managedObjectContext executeFetchRequest:req error:nil];
-    return result;
-}
-
-- (id) getEntity:(NSString*) entityName withField:(NSString *) fieldName withValue:(NSString *) fieldValue {
-    NSPredicate *predicate = [NSPredicate predicateWithFormat:fieldName, fieldValue];
-    NSArray *values = [self getEntities:entityName withPredicate:predicate withSortColumn:nil];
-    
-    if ([values count] > 0) return [values objectAtIndex:0]; else return nil;
-}
-
 - (id) getEntity:(NSString *)entityName withPredicate:(NSPredicate *) predicate{
     NSFetchRequest *req = [[NSFetchRequest alloc] init];
     NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext];
@@ -193,104 +161,6 @@
     
     NSArray *result = [managedObjectContext executeFetchRequest:req error:nil];
     if ([result count] > 0) return [result objectAtIndex:0]; else return nil;
-}
-
-- (int) entityCount:(NSString*) entityName withPredicate:(NSPredicate*) predicate {
-    NSFetchRequest * req = [[NSFetchRequest alloc] init];
-    NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext];
-    [req setEntity:entity];
-    [req setReturnsDistinctResults:YES];
-    [req setResultType:NSCountResultType];
-    
-    if (predicate != nil) {
-        [req setPredicate:predicate];
-    }
-    
-    NSArray *result = [managedObjectContext executeFetchRequest:req error:nil];
-    return [[result objectAtIndex:0] intValue];
-}
-
-- (int) maxFieldValue:(NSString*) entityName withField:(NSString *)field withPredicate:(NSPredicate*) predicate withFunction:(NSString *) function {
-    
-    NSFetchRequest *request = [[NSFetchRequest alloc] init];
-    NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext];
-    [request setEntity:entity];
-    // Specify that the request should return dictionaries.
-    [request setResultType:NSDictionaryResultType];
-    // Create an expression for the key path.
-    NSExpression *keyPathExpression = [NSExpression expressionForKeyPath:field];
-    // Create an expression to represent the minimum value at the key path 'creationDate'
-    NSExpression *minExpression = [NSExpression expressionForFunction:[NSString stringWithFormat:@"%@:", function] arguments:[NSArray  arrayWithObject:keyPathExpression]];
-    // Create an expression description using the minExpression and returning a date.
-    NSExpressionDescription *expressionDescription = [[NSExpressionDescription alloc] init];
-    // The name is the key that will be used in the dictionary for the return value.
-    
-    NSString *fieldName = [NSString stringWithFormat:@"%@%@",field, function];
-    [expressionDescription setName:fieldName];
-    [expressionDescription setExpression:minExpression];
-    [expressionDescription setExpressionResultType:NSInteger32AttributeType];
-    
-    // Set the request's properties to fetch just the property represented by the expressions.
-    [request setPropertiesToFetch:[NSArray arrayWithObject:expressionDescription]];
-    // Execute the fetch.
-    NSError *error = nil;
-    NSArray *objects = [managedObjectContext executeFetchRequest:request error:&error];
-    
-    if (objects == nil) {
-        // Handle the error
-        return 0;
-    }
-    else {
-        if ([objects count] > 0) {
-            NSLog(@"Function result : %@", [[objects objectAtIndex:0] valueForKey:fieldName]);
-        }
-    }
-    
-    return [[[objects objectAtIndex:0] valueForKey:fieldName] intValue];
-}
-
-- (NSArray *) getEntities:(NSString*) entityName withPredicate:(NSPredicate*) predicate withSortColumn:(NSString *) sortColumn {
-    return [self getEntities:entityName withPredicate:predicate withSortColumn:sortColumn ascending:YES];
-}
-
-- (NSArray *) getEntities:(NSString*) entityName withPredicate:(NSPredicate*) predicate withSortColumn:(NSString *) sortColumn ascending:(BOOL) ascending {
-    NSFetchRequest * req = [[NSFetchRequest alloc] init];
-    NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext];
-    [req setEntity:entity];
-    [req setReturnsDistinctResults:YES];
-    [req setResultType:NSManagedObjectResultType];
-    
-    if (sortColumn != nil) {
-        [req setSortDescriptors:[NSArray arrayWithObject:[[NSSortDescriptor alloc] initWithKey:sortColumn ascending:ascending]]];
-    }
-    
-    if (predicate != nil) {
-        [req setPredicate:predicate];
-    }
-    NSArray *result = [managedObjectContext executeFetchRequest:req error:nil];
-    return result;
-}
-
-- (void) deleteAllInstancesOfEntity:(NSString*) entityName withPredicate:(NSPredicate*) predicate {
-    NSFetchRequest * allEntities = [[NSFetchRequest alloc] init];
-    [allEntities setEntity:[NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext]];
-    [allEntities setIncludesPropertyValues:NO]; //only fetch the managedObjectID
-    if (predicate != nil) {
-        [allEntities setPredicate:predicate];
-    }
-    
-    NSError * error = nil;
-    NSArray * entities = [managedObjectContext executeFetchRequest:allEntities error:&error];
-    //error handling goes here
-    for (NSManagedObject * entity in entities) {
-        [managedObjectContext deleteObject:entity];
-    }
-    NSError *saveError = nil;
-    [managedObjectContext save:&saveError];
-}
-
-- (id) entityOfType:(NSString *) entity {
-    return [NSEntityDescription insertNewObjectForEntityForName:entity inManagedObjectContext:[CoreDataManager.sharedInstance managedObjectContext]];
 }
 
 - (id)addOrUpdateObjectFromJSONDictionary:(id)jsonDictionary entity:(NSString *)name idObjectName:(NSString *)keyName{
@@ -386,6 +256,46 @@
     }
     
     return value;
+}
+
+- (void)deleteEntity:(id)entity {
+    NSManagedObjectContext *contextForThread = [[[NSThread currentThread] threadDictionary] objectForKey:@"ManagedObjectContextKey"];
+    if (contextForThread != nil) {
+        [contextForThread deleteObject:entity];
+        [self saveContext];
+    }
+}
+
+- (NSArray *) getEntities:(NSString*) entityName withPredicate:(NSPredicate*) predicate {
+    NSFetchRequest * req = [[NSFetchRequest alloc] init];
+    NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext];
+    [req setEntity:entity];
+    [req setReturnsDistinctResults:YES];
+    [req setResultType:NSManagedObjectResultType];
+    if (predicate != nil) {
+        [req setPredicate:predicate];
+    }
+    NSArray *result = [managedObjectContext executeFetchRequest:req error:nil];
+    return result;
+}
+
+- (id) entityOfType:(NSString *) entity {
+    return [NSEntityDescription insertNewObjectForEntityForName:entity inManagedObjectContext:[CoreDataManager.sharedInstance managedObjectContext]];
+}
+
+- (int) entityCount:(NSString*) entityName withPredicate:(NSPredicate*) predicate {
+    NSFetchRequest * req = [[NSFetchRequest alloc] init];
+    NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:managedObjectContext];
+    [req setEntity:entity];
+    [req setReturnsDistinctResults:YES];
+    [req setResultType:NSCountResultType];
+    
+    if (predicate != nil) {
+        [req setPredicate:predicate];
+    }
+    
+    NSArray *result = [managedObjectContext executeFetchRequest:req error:nil];
+    return [[result objectAtIndex:0] intValue];
 }
 
 @end

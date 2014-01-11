@@ -32,16 +32,9 @@
 - (NSDictionary *)getObjectSpecification:(id)object;
 - (id)parseDictionary:(NSDictionary *)dictionary toObject:(id)object;
 - (id)getValueFromDictionary:(NSDictionary *)dictionary withKey:(NSString *)key andObjectSpecification:(NSDictionary *)objectSpecification;
-
-
-- (id) getEntity:(NSString*) entityName withField:(NSString *) fieldName withValue:(NSString *) fieldValue;
-- (void)deleteEntity:(id)entity ;
-- (NSArray *) getDistinctValuesForEntityProperty:(NSString*) entityName forProperty:(NSString*) property withSorting:(NSString *) sortColumn withPredicate:(NSPredicate*) predicate;
-- (NSArray *) getEntities:(NSString*) entityName withPredicate:(NSPredicate*) predicate withSortColumn:(NSString *) sortColumn;
-- (NSArray *) getEntities:(NSString*) entityName withPredicate:(NSPredicate*) predicate withSortColumn:(NSString *) sortColumn ascending:(BOOL) ascending;
-- (void) deleteAllInstancesOfEntity:(NSString*) entityName withPredicate:(NSPredicate*) predicate;
-- (id)  entityOfType:(NSString *) entity;
+- (void)deleteEntity:(id)entity;
+- (NSArray *)getEntities:(NSString *)entity withPredicate:(NSPredicate *)predicate;
+- (id)entityOfType:(NSString *) entity;
 - (int) entityCount:(NSString*) entityName withPredicate:(NSPredicate*) predicate;
-- (int) maxFieldValue:(NSString*) entityName withField:(NSString *)field withPredicate:(NSPredicate*) predicate withFunction:(NSString *) function;
 
 @end
